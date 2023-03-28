@@ -7,6 +7,10 @@ The `github-exporter.sh` script allows you to export multiple repositories from 
 - `curl`
 - `jq`
 
+## Prerequisites
+
+- You must generate a repo-listing.txt - instructions can be found within the README.md under ../repo-fetch-single-org
+
 ## Usage
 
 To use this script, you need to provide the following command line options:
@@ -18,7 +22,17 @@ To use this script, you need to provide the following command line options:
 
 ### Example usage
 
-```./github-exporter.sh -t YOUR_GITHUB_TOKEN -o YOUR_ORGANIZATION_NAME -r /path/to/repo-listing.txt -l```
+```
+chmod +x github-export.sh
+OR
+chmod +x github-export-no-color.sh
+```
+
+```
+./github-export.sh -t YOUR_GITHUB_TOKEN -o YOUR_ORGANIZATION_NAME -r /path/to/repo-listing.txt -l
+OR
+./github-export-no-color.sh -t YOUR_GITHUB_TOKEN -o YOUR_ORGANIZATION_NAME -r /path/to/repo-listing.txt -l
+```
 
 ## What is exported
 

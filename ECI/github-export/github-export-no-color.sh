@@ -1,18 +1,13 @@
 #!/bin/bash
 
-CYAN='\033[0;36m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
-BLACK='\033[0;30m'
-
 t_flag=0
 o_flag=0
 r_flag=0
 
 help () {
-  printf "${CYAN}GitHub Exporter\n"
-  printf "${BLACK}command options are:\n"
-  printf "${CYAN}-h: help\n"
+  printf "GitHub Exporter\n"
+  printf "command options are:\n"
+  printf "-h: help\n"
   printf "-t: token\n"
   printf "-o: organization\n"
   printf "-r: repo list, one repo per line text file\n"
@@ -42,12 +37,12 @@ while getopts ":ht:o:r:l" opt; do
       LOCK="true"
       ;;
     \?)
-      echo "${RED}Invalid option: ${OPTARG}${BLACK}"
+      echo "Invalid option: ${OPTARG}"
       help
       exit 1
       ;;
     :)
-      echo "${RED}Invalid option: ${OPTARG} requires an argument${BLACK}" 1>&2
+      echo "Invalid option: ${OPTARG} requires an argument" 1>&2
       exit 1
       ;;
   esac
@@ -56,7 +51,7 @@ shift $((OPTIND -1))
 
 if [[ $t_flag -eq 0 ]] || [[ $o_flag -eq 0 ]] || [[ $r_flag -eq 0 ]]
 then
-  echo "${RED}You must use [-t] [-o] and [-r]${BLACK}"
+  echo "You must use [-t] [-o] and [-r]"
   help
   exit 1
 fi
@@ -71,12 +66,12 @@ REPO_LIST="\"$(repo_list | sed 's/","$//')\""
 STATE="started"
 
 if [ $LOCK = "true" ]; then
-  echo "${RED}Locking repos${BLACK}"
+  echo "Locking repos"
 else
-  echo "${RED}Migrating without locking repos${BLACK}"
+  echo "Migrating without locking repos"
 fi
 
-printf "${CYAN}Exporting ${REPO_LIST}${BLACK}\n"
+printf "Exporting ${REPO_LIST}\n"
 
 MIGRATION_URL=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
   -X POST \
@@ -85,7 +80,7 @@ MIGRATION_URL=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
   https://api.github.com/orgs/$ORG/migrations | \
   jq '.url' | sed 's/"//g')
 
-echo "${CYAN}Migration URL: ${MIGRATION_URL}${BLACK}"
+echo "Migration URL: ${MIGRATION_URL}"
 
 i=0
 dots=...
@@ -95,6 +90,31 @@ while [ $STATE != "exported" ]; do
     $MIGRATION_URL | \
     jq '.state' | sed 's/"//g')
   if [ $i -eq 0 ]; then
-    echo "${CYAN}Migration state: ${STATE}${dots}${BLACK}"
+    echo "Migration state: ${STATE}${dots}"
   elif [ ${STATE} != "exported" ] && [ $i -ne 0 ]; then
-    echo -e
+    echo -e "\rMigration state: ${STATE}${dots}"
+  fi
+  let i++
+  dots="$dots."
+  sleep 2
+done
+
+k="Migration state: exporting"
+for i in ${#k}; do
+  echo -e "\e[1A\e[K${k::-$i}\|${dots}"
+  sleep .05
+done
+echo -e "\e[1A\e[KCOMPLETE"
+
+ARCHIVE_URL=`curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+  -H "Accept: application/vnd.github.wyandotte-preview+json" \
+  ${MIGRATION_URL}/archive`
+
+curl -s "${ARCHIVE_URL}" -o "${ORG}"_archive.tar.gz
+
+archive=$(ls -lh | grep "${ORG}"_archive.tar.gz | awk '{print $9" "$5}')
+
+echo -e "Output ${BLUE}${archive}"
+tput sgr0
+
+exit 0
